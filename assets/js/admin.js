@@ -1,4 +1,3 @@
-/* aGo Harden Admin JS */
 (function () {
     'use strict';
 
@@ -10,7 +9,6 @@
 
     if (!saveBtn) return;
 
-    /* ─── Score gauge helpers ─── */
     var CIRCUMFERENCE = 326.73;
 
     var WEIGHTS = {
@@ -51,10 +49,10 @@
     }
 
     function scoreLabel(s) {
-        if (s >= 90) return agoHarden.i18n ? agoHarden.i18n.excellent : 'Excellent';
-        if (s >= 70) return agoHarden.i18n ? agoHarden.i18n.good : 'Good';
-        if (s >= 40) return agoHarden.i18n ? agoHarden.i18n.fair : 'Fair';
-        return agoHarden.i18n ? agoHarden.i18n.weak : 'Weak';
+        if (s >= 90) return agohardenData.i18n ? agohardenData.i18n.excellent : 'Excellent';
+        if (s >= 70) return agohardenData.i18n ? agohardenData.i18n.good : 'Good';
+        if (s >= 40) return agohardenData.i18n ? agohardenData.i18n.fair : 'Fair';
+        return agohardenData.i18n ? agohardenData.i18n.weak : 'Weak';
     }
 
     function updateGauge(score) {
@@ -77,7 +75,6 @@
         }
     }
 
-    /* ─── Live score update on toggle change ─── */
     $$('.ago-toggle-header input[type="checkbox"], .ago-text-input, .ago-number-input').forEach(function (el) {
         var evt = (el.type === 'checkbox') ? 'change' : 'input';
         el.addEventListener(evt, function () {
@@ -85,7 +82,6 @@
         });
     });
 
-    /* ─── Save settings ─── */
     saveBtn.addEventListener('click', function () {
         var data = {};
 
@@ -102,15 +98,15 @@
         });
 
         saveBtn.classList.add('saving');
-        saveBtn.textContent = agoHarden.i18n ? agoHarden.i18n.saving : 'Saving…';
+        saveBtn.textContent = agohardenData.i18n ? agohardenData.i18n.saving : 'Saving…';
         saveStatus.textContent = '';
         saveStatus.className = 'ago-save-status';
 
-        fetch(agoHarden.restUrl + '/settings', {
+        fetch(agohardenData.restUrl + '/settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-WP-Nonce': agoHarden.nonce
+                'X-WP-Nonce': agohardenData.nonce
             },
             body: JSON.stringify(data)
         })
@@ -118,13 +114,13 @@
         .then(function (resp) {
             if (resp.saved) {
                 saveStatus.className = 'ago-save-status ok';
-                saveStatus.textContent = agoHarden.i18n ? agoHarden.i18n.saved : 'Saved!';
+                saveStatus.textContent = agohardenData.i18n ? agohardenData.i18n.saved : 'Saved!';
                 if (resp.settings && typeof resp.settings.security_score !== 'undefined') {
                     updateGauge(resp.settings.security_score);
                 }
             } else {
                 saveStatus.className = 'ago-save-status fail';
-                saveStatus.textContent = agoHarden.i18n ? agoHarden.i18n.error : 'Error saving.';
+                saveStatus.textContent = agohardenData.i18n ? agohardenData.i18n.error : 'Error saving.';
             }
         })
         .catch(function (err) {
@@ -133,8 +129,7 @@
         })
         .finally(function () {
             saveBtn.classList.remove('saving');
-            saveBtn.textContent = agoHarden.i18n ? agoHarden.i18n.save : 'Save Settings';
-            // Auto-clear status after 3s
+            saveBtn.textContent = agohardenData.i18n ? agohardenData.i18n.save : 'Save Settings';
             setTimeout(function () {
                 saveStatus.textContent = '';
                 saveStatus.className = 'ago-save-status';

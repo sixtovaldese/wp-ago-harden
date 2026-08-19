@@ -48,7 +48,9 @@ class LoginUrl {
     }
 
     public static function handle_custom_login(): void {
-        $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+        $request_uri = isset( $_SERVER['REQUEST_URI'] )
+            ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+            : '';
         $parsed      = wp_parse_url( $request_uri );
         $path        = $parsed['path'] ?? '';
         $path        = rtrim( $path, '/' );

@@ -1,9 +1,9 @@
 === aGo Harden ===
-Contributors: sixtovaldese
+Contributors: agolab
 Donate link: https://paypal.me/sixtovaldes
 Tags: security, hardening, login, brute-force, headers
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 8.1
 Stable tag: 1.0.0
 License: GPL-2.0-or-later
@@ -13,7 +13,7 @@ Security hardening dashboard with toggles: custom login URL, brute-force protect
 
 == Description ==
 
-aGo Harden gives you a single dashboard with reversible toggles to harden a WordPress site. Each switch ships with a 1-line summary plus an expandable explanation (how it works, why, caveats). Safe defaults seed on first activation.
+aGo Harden gives you a single dashboard with reversible toggles to harden a WordPress site. Each switch ships with a short summary of what it does. Every switch starts off, so nothing changes until you turn it on.
 
 **Features**
 
@@ -24,7 +24,10 @@ aGo Harden gives you a single dashboard with reversible toggles to harden a Word
 * Disable PHP execution inside `/wp-content/uploads/`.
 * Disable directory listing.
 * Block author enumeration probes (`?author=N`).
-* XML-RPC fully disabled or pingback-only.
+* Disable the XML-RPC endpoint.
+* Hide the WordPress version meta tag and strip `?ver=` from scripts and styles.
+* Hide detailed login errors behind a generic message.
+* Force logout after a configurable number of hours.
 * Real-time security score on the dashboard.
 * No external services, no remote calls.
 * English, Spanish (es_ES) and Brazilian Portuguese (pt_BR) bundled.
@@ -33,7 +36,7 @@ aGo Harden gives you a single dashboard with reversible toggles to harden a Word
 
 1. Upload the `ago-harden` folder to `/wp-content/plugins/` or install via the Plugins screen.
 2. Activate the plugin.
-3. Go to **aGo Tools, then Harden**. Toggle switches as needed. Each toggle saves on change.
+3. Go to **aGo Tools, then Harden**. Toggle switches as needed, then click **Save Settings**.
 
 == Frequently Asked Questions ==
 
@@ -54,6 +57,18 @@ Yes, the PHP-in-uploads block and directory-listing toggles write a small rules 
 1. Security dashboard with real-time score.
 2. Toggle list grouped by category.
 3. Custom login URL settings.
+
+== External services ==
+
+This plugin does not connect to any external services. It runs entirely on your own server. No data is sent anywhere, and no remote APIs are contacted.
+
+The sidebar links to external sites (PayPal donation pages and the aGo Lab website) that only open when you click them. No data is transmitted automatically.
+
+== Privacy ==
+
+aGo Harden stores a single option (`agoharden_settings`) holding your toggle preferences. The brute-force protection feature stores short-lived transients keyed by a salted hash of the visitor IP address (no plain IP is stored). Some toggles write a small rules block to `.htaccess` files in the site root and uploads directory.
+
+On uninstall, the plugin deletes its option, removes its `.htaccess` rules blocks, and lets the transients expire. No personal data is collected, profiled, or shared.
 
 == Changelog ==
 

@@ -10,6 +10,11 @@ defined( 'ABSPATH' ) || exit;
 class Page {
 
     public static function render(): void {
+        // A rule can be lost outside the plugin: a hand-edited .htaccess, a
+        // migration, a host that resets the file. Reconcile here so the page
+        // never reports a protection that is not actually in place.
+        Plugin::sync_htaccess();
+
         $settings = Plugin::get_settings();
         $score    = Score::calculate( $settings );
         $color    = Score::color( $score );
@@ -17,15 +22,14 @@ class Page {
         ?>
         <div class="wrap">
             <h1>
-                <img src="<?php echo esc_url( AGO_HARDEN_URL . 'assets/img/agolab.webp' ); ?>" alt="aGo Lab" style="height:28px;width:auto;vertical-align:middle;margin-right:8px">
+                <img src="<?php echo esc_url( AGOHARDEN_URL . 'assets/img/agolab.webp' ); ?>" alt="aGo Lab" style="height:28px;width:auto;vertical-align:middle;margin-right:8px">
                 <?php esc_html_e( 'aGo Harden', 'ago-harden' ); ?>
-                <span style="font-size:12px;color:#999;margin-left:8px">v<?php echo esc_html( AGO_HARDEN_VERSION ); ?></span>
+                <span style="font-size:12px;color:#999;margin-left:8px">v<?php echo esc_html( AGOHARDEN_VERSION ); ?></span>
             </h1>
 
             <div class="ago-layout">
                 <div class="ago-main">
 
-                    <!-- Security Score -->
                     <div class="card ago-card ago-score-card">
                         <div class="ago-score-wrapper">
                             <div class="ago-score-gauge" id="ago-score-gauge">
@@ -49,7 +53,6 @@ class Page {
                         </div>
                     </div>
 
-                    <!-- Login & Authentication -->
                     <div class="card ago-card">
                         <h2><?php esc_html_e( 'Login & Authentication', 'ago-harden' ); ?></h2>
 
@@ -98,7 +101,6 @@ class Page {
                         </div>
                     </div>
 
-                    <!-- Information Exposure -->
                     <div class="card ago-card">
                         <h2><?php esc_html_e( 'Information Exposure', 'ago-harden' ); ?></h2>
 
@@ -123,7 +125,6 @@ class Page {
                         </div>
                     </div>
 
-                    <!-- HTTP & Transport -->
                     <div class="card ago-card">
                         <h2><?php esc_html_e( 'HTTP & Transport', 'ago-harden' ); ?></h2>
 
@@ -148,7 +149,6 @@ class Page {
                         </div>
                     </div>
 
-                    <!-- File System -->
                     <div class="card ago-card">
                         <h2><?php esc_html_e( 'File System', 'ago-harden' ); ?></h2>
 
@@ -182,7 +182,6 @@ class Page {
                         </div>
                     </div>
 
-                    <!-- Save -->
                     <div class="ago-actions">
                         <button id="ago-save-btn" class="button button-primary button-hero">
                             <?php esc_html_e( 'Save Settings', 'ago-harden' ); ?>
@@ -192,10 +191,18 @@ class Page {
 
                 </div>
 
-                <!-- SIDEBAR -->
                 <div class="ago-sidebar">
 
-                    <!-- About -->
+                    <div class="card ago-card">
+                        <h3 style="margin-top:0"><?php esc_html_e( 'Quick links', 'ago-harden' ); ?></h3>
+                        <ul class="ago-features" style="list-style:none;padding:0;margin:0">
+                            <li><a href="https://ago.cl/herramientas/wordpress/ago-harden/docs" target="_blank" rel="noopener"><?php esc_html_e( 'Documentation', 'ago-harden' ); ?></a></li>
+                            <li><a href="https://www.wpscan.com" target="_blank" rel="noopener"><?php esc_html_e( 'WPScan vulnerability database', 'ago-harden' ); ?></a></li>
+                            <li><a href="https://securityheaders.com" target="_blank" rel="noopener"><?php esc_html_e( 'Scan your security headers', 'ago-harden' ); ?></a></li>
+                            <li><a href="https://observatory.mozilla.org" target="_blank" rel="noopener"><?php esc_html_e( 'Audit with Mozilla Observatory', 'ago-harden' ); ?></a></li>
+                        </ul>
+                    </div>
+
                     <div class="card ago-card">
                         <h3><?php esc_html_e( 'About', 'ago-harden' ); ?></h3>
                         <p style="font-size:13px;color:#666">
@@ -211,7 +218,24 @@ class Page {
                         </ul>
                     </div>
 
-                    <!-- Donation -->
+                    <div class="card ago-card">
+                        <h3 style="margin-top:0"><?php esc_html_e( 'Other aGo Lab plugins', 'ago-harden' ); ?></h3>
+                        <p style="font-size:13px;color:#666;margin-top:0">
+                            <?php esc_html_e( 'Free WordPress plugins from the same team. No upsell pressure.', 'ago-harden' ); ?>
+                        </p>
+                        <ul class="ago-features">
+                            <li><strong>aGo Mail Pilot</strong>, <?php esc_html_e( 'SMTP for WordPress with 8 provider presets and credentials wizard.', 'ago-harden' ); ?></li>
+                            <li><strong>aGo AI Chatbot</strong>, <?php esc_html_e( 'AI customer support widget for your site.', 'ago-harden' ); ?></li>
+                            <li><strong>aGo Legal</strong>, <?php esc_html_e( 'GDPR / LGPD / Chile Law 21.719 compliance toolkit.', 'ago-harden' ); ?></li>
+                            <li><strong>aGo Maintenance</strong>, <?php esc_html_e( 'Maintenance and coming-soon mode for your site.', 'ago-harden' ); ?></li>
+                        </ul>
+                        <p>
+                            <a href="https://ago.cl/herramientas/" target="_blank" rel="noopener" class="button button-secondary" style="width:100%;text-align:center">
+                                <?php esc_html_e( 'Browse aGo Lab plugins', 'ago-harden' ); ?>
+                            </a>
+                        </p>
+                    </div>
+
                     <div class="card ago-card ago-donation">
                         <h3><?php esc_html_e( 'Support Open Source', 'ago-harden' ); ?></h3>
                         <p style="font-size:13px;color:#666">
@@ -231,10 +255,9 @@ class Page {
                         </p>
                     </div>
 
-                    <!-- Footer with logo -->
                     <div class="ago-footer">
                         <a href="https://ago.cl" target="_blank" rel="noopener" class="ago-footer-logo">
-                            <img src="<?php echo esc_url( AGO_HARDEN_URL . 'assets/img/agolab.webp' ); ?>" alt="aGo Lab" style="height:40px;width:auto">
+                            <img src="<?php echo esc_url( AGOHARDEN_URL . 'assets/img/agolab.webp' ); ?>" alt="aGo Lab" style="height:40px;width:auto">
                         </a>
                         <p>
                             <?php

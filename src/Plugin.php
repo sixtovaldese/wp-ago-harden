@@ -46,50 +46,57 @@ class Plugin {
     }
 
     private function __construct() {
-        add_action( 'init', [ $this, 'load_textdomain' ] );
         add_action( 'admin_menu', [ $this, 'register_admin_menu' ] );
         add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-
-        register_activation_hook( AGO_HARDEN_FILE, [ $this, 'activate' ] );
-        register_deactivation_hook( AGO_HARDEN_FILE, [ $this, 'deactivate' ] );
 
         // Init active modules.
         $this->init_modules();
     }
 
-    /* ───── Textdomain ───── */
-
-    public function load_textdomain(): void {
-        load_plugin_textdomain( 'ago-harden', false, dirname( plugin_basename( AGO_HARDEN_FILE ) ) . '/languages' );
+    public static function activate(): void {
+        self::sync_htaccess();
     }
 
-    public function activate(): void {
-        $settings = self::get_settings();
-
-        // Write .htaccess rules if toggles are already active.
-        if ( ! empty( $settings['block_php_uploads'] ) ) {
-            Modules\PhpUploads::write_htaccess();
-        }
-        if ( ! empty( $settings['disable_directory_listing'] ) ) {
-            Modules\DirectoryListing::write_htaccess();
-        }
-    }
-
-    public function deactivate(): void {
+    public static function deactivate(): void {
         Modules\PhpUploads::remove_htaccess();
         Modules\DirectoryListing::remove_htaccess();
+    }
+
+    /**
+     * Bring the .htaccess rules in line with the saved toggles.
+     *
+     * The rules are derived state: the toggles are the source of truth. This
+     * runs on activation, on save and when the settings page is opened, so a
+     * rule that was removed by hand or lost in a migration comes back instead
+     * of leaving a toggle showing a protection that is not in place. Both
+     * writers check for their own marker first, so repeated calls do no I/O.
+     */
+    public static function sync_htaccess(): void {
+        $settings = self::get_settings();
+
+        if ( ! empty( $settings['block_php_uploads'] ) ) {
+            Modules\PhpUploads::write_htaccess();
+        } else {
+            Modules\PhpUploads::remove_htaccess();
+        }
+
+        if ( ! empty( $settings['disable_directory_listing'] ) ) {
+            Modules\DirectoryListing::write_htaccess();
+        } else {
+            Modules\DirectoryListing::remove_htaccess();
+        }
     }
 
     /* ───── Admin menu (smart pattern) ───── */
 
     public function register_admin_menu(): void {
-        if ( empty( $GLOBALS['admin_page_hooks']['ago-tools'] ) ) {
+        if ( empty( $GLOBALS['admin_page_hooks']['agolab-tools'] ) ) {
             add_menu_page(
                 __( 'aGo Tools', 'ago-harden' ),
                 __( 'aGo Tools', 'ago-harden' ),
                 'manage_options',
-                'ago-tools',
+                'agolab-tools',
                 '__return_null',
                 'dashicons-hammer',
                 81
@@ -97,7 +104,7 @@ class Plugin {
         }
 
         add_submenu_page(
-            'ago-tools',
+            'agolab-tools',
             __( 'aGo Harden', 'ago-harden' ),
             __( 'Harden', 'ago-harden' ),
             'manage_options',
@@ -105,7 +112,7 @@ class Plugin {
             [ Admin\Page::class, 'render' ]
         );
 
-        remove_submenu_page( 'ago-tools', 'ago-tools' );
+        remove_submenu_page( 'agolab-tools', 'agolab-tools' );
     }
 
     /* ───── REST routes ───── */
@@ -157,21 +164,8 @@ class Plugin {
             }
         }
 
-        $old_settings = self::get_settings();
-        update_option( 'ago_harden_settings', $settings );
-
-        // Handle .htaccess writes.
-        if ( ! empty( $settings['block_php_uploads'] ) ) {
-            Modules\PhpUploads::write_htaccess();
-        } elseif ( ! empty( $old_settings['block_php_uploads'] ) ) {
-            Modules\PhpUploads::remove_htaccess();
-        }
-
-        if ( ! empty( $settings['disable_directory_listing'] ) ) {
-            Modules\DirectoryListing::write_htaccess();
-        } elseif ( ! empty( $old_settings['disable_directory_listing'] ) ) {
-            Modules\DirectoryListing::remove_htaccess();
-        }
+        update_option( 'agoharden_settings', $settings );
+        self::sync_htaccess();
 
         $settings['security_score'] = Score::calculate( $settings );
 
@@ -192,26 +186,36 @@ class Plugin {
         }
 
         wp_enqueue_style(
-            'ago-harden-admin',
-            AGO_HARDEN_URL . 'assets/css/admin.css',
+            'agoharden-admin',
+            AGOHARDEN_URL . 'assets/css/admin.css',
             [],
-            AGO_HARDEN_VERSION
+            AGOHARDEN_VERSION
         );
 
         wp_enqueue_script(
-            'ago-harden-admin',
-            AGO_HARDEN_URL . 'assets/js/admin.js',
+            'agoharden-admin',
+            AGOHARDEN_URL . 'assets/js/admin.js',
             [],
-            AGO_HARDEN_VERSION,
+            AGOHARDEN_VERSION,
             true
         );
 
-        wp_localize_script( 'ago-harden-admin', 'agoHarden', [
+        wp_localize_script( 'agoharden-admin', 'agohardenData', [
             'restUrl'  => rest_url( 'ago-harden/v1' ),
             'nonce'    => wp_create_nonce( 'wp_rest' ),
             'settings' => array_merge( self::get_settings(), [
                 'security_score' => Score::calculate( self::get_settings() ),
             ] ),
+            'i18n'     => [
+                'excellent' => __( 'Excellent', 'ago-harden' ),
+                'good'      => __( 'Good', 'ago-harden' ),
+                'fair'      => __( 'Fair', 'ago-harden' ),
+                'weak'      => __( 'Weak', 'ago-harden' ),
+                'saving'    => __( 'Saving...', 'ago-harden' ),
+                'saved'     => __( 'Saved!', 'ago-harden' ),
+                'error'     => __( 'Error saving.', 'ago-harden' ),
+                'save'      => __( 'Save Settings', 'ago-harden' ),
+            ],
         ] );
     }
 
@@ -239,7 +243,7 @@ class Plugin {
 
     /** @return array<string, mixed> */
     public static function get_settings(): array {
-        $saved    = get_option( 'ago_harden_settings', [] );
+        $saved    = get_option( 'agoharden_settings', [] );
         $settings = [];
 
         foreach ( self::DEFAULTS as $key => $default ) {

@@ -24,11 +24,11 @@ class LoginProtect {
         }
 
         $ip_hash  = self::ip_hash();
-        $blocked  = get_transient( 'ago_harden_login_blocked_' . $ip_hash );
+        $blocked  = get_transient( 'agoharden_login_blocked_' . $ip_hash );
 
         if ( $blocked ) {
             return new \WP_Error(
-                'ago_harden_locked',
+                'agoharden_locked',
                 sprintf(
                     /* translators: %d: lockout duration in hours */
                     __( 'Too many failed login attempts. Please try again in %d hour.', 'ago-harden' ),
@@ -45,7 +45,7 @@ class LoginProtect {
      */
     public static function record_failure( string $username ): void {
         $ip_hash     = self::ip_hash();
-        $transient   = 'ago_harden_login_attempts_' . $ip_hash;
+        $transient   = 'agoharden_login_attempts_' . $ip_hash;
         $attempts    = (int) get_transient( $transient );
         $attempts++;
 
@@ -53,7 +53,7 @@ class LoginProtect {
 
         if ( $attempts >= self::MAX_ATTEMPTS ) {
             set_transient(
-                'ago_harden_login_blocked_' . $ip_hash,
+                'agoharden_login_blocked_' . $ip_hash,
                 time(),
                 self::LOCKOUT_HOUR * HOUR_IN_SECONDS
             );
@@ -62,7 +62,9 @@ class LoginProtect {
     }
 
     private static function ip_hash(): string {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ip = isset( $_SERVER['REMOTE_ADDR'] )
+            ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+            : '0.0.0.0';
         return md5( $ip . wp_salt( 'auth' ) );
     }
 }

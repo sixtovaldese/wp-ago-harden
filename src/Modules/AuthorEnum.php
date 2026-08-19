@@ -19,6 +19,10 @@ class AuthorEnum {
             return;
         }
 
+        // Only the presence of the parameter is read, to send the visitor back
+        // to the home page. Nothing is processed and no state changes, so there
+        // is no form and no nonce to check.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if ( isset( $_GET['author'] ) || isset( $_GET['author_name'] ) ) {
             wp_safe_redirect( home_url(), 301 );
             exit;

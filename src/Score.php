@@ -22,7 +22,7 @@ class Score {
     ];
 
     /**
-     * Calculate security score (0–100).
+     * Calculate security score (0-100).
      *
      * @param array<string, mixed> $settings
      */

@@ -1,34 +1,44 @@
 <?php
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-delete_option( 'ago_harden_settings' );
+delete_option( 'agoharden_settings' );
 
-// Clean up .htaccess in uploads directory.
-$uploads_htaccess = wp_upload_dir()['basedir'] . '/.htaccess';
-if ( file_exists( $uploads_htaccess ) ) {
-    $content = file_get_contents( $uploads_htaccess );
-    $marker  = '# BEGIN aGo Harden';
-    if ( strpos( $content, $marker ) !== false ) {
-        $content = preg_replace(
-            '/# BEGIN aGo Harden.*?# END aGo Harden\s*/s',
-            '',
-            $content
-        );
-        file_put_contents( $uploads_htaccess, $content );
+/**
+ * Strip the plugin's block from an .htaccess file, and delete the file when
+ * nothing else is left in it.
+ *
+ * The module classes are not available during uninstall, so the removal is
+ * repeated here rather than reused.
+ *
+ * @param string $agoharden_path Absolute path to the .htaccess file.
+ */
+function agoharden_strip_rules( string $agoharden_path ): void {
+    if ( ! file_exists( $agoharden_path ) ) {
+        return;
     }
+
+    $agoharden_content = file_get_contents( $agoharden_path );
+
+    if ( strpos( $agoharden_content, '# BEGIN aGo Harden' ) === false ) {
+        return;
+    }
+
+    $agoharden_content = preg_replace(
+        '/# BEGIN aGo Harden.*?# END aGo Harden\s*/s',
+        '',
+        $agoharden_content
+    );
+
+    if ( trim( $agoharden_content ) === '' ) {
+        wp_delete_file( $agoharden_path );
+        return;
+    }
+
+    // These are the two .htaccess files the plugin wrote to, so the paths are
+    // the point: there is no alternative location for either of them.
+    // phpcs:ignore PluginCheck.CodeAnalysis.WriteFile.ABSPATHDetected
+    file_put_contents( $agoharden_path, $agoharden_content );
 }
 
-// Clean up Options -Indexes from root .htaccess.
-$root_htaccess = ABSPATH . '.htaccess';
-if ( file_exists( $root_htaccess ) ) {
-    $content = file_get_contents( $root_htaccess );
-    $marker  = '# BEGIN aGo Harden';
-    if ( strpos( $content, $marker ) !== false ) {
-        $content = preg_replace(
-            '/# BEGIN aGo Harden.*?# END aGo Harden\s*/s',
-            '',
-            $content
-        );
-        file_put_contents( $root_htaccess, $content );
-    }
-}
+agoharden_strip_rules( wp_upload_dir()['basedir'] . '/.htaccess' );
+agoharden_strip_rules( ABSPATH . '.htaccess' );

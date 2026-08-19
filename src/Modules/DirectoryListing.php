@@ -35,6 +35,9 @@ class DirectoryListing {
             $content .= "\n" . $rules;
         }
 
+        // The root .htaccess is the file this module manages: the directory
+        // listing rule has to live there, so wp_upload_dir() is no alternative.
+        // phpcs:ignore PluginCheck.CodeAnalysis.WriteFile.ABSPATHDetected
         file_put_contents( $htaccess, $content );
     }
 
@@ -49,12 +52,20 @@ class DirectoryListing {
         }
 
         $content = file_get_contents( $htaccess );
+
+        if ( strpos( $content, '# BEGIN aGo Harden' ) === false ) {
+            return; // Nothing of ours to remove.
+        }
+
         $content = preg_replace(
             '/# BEGIN aGo Harden.*?# END aGo Harden\s*/s',
             '',
             $content
         );
 
+        // The root .htaccess is the file this module manages: the directory
+        // listing rule has to live there, so wp_upload_dir() is no alternative.
+        // phpcs:ignore PluginCheck.CodeAnalysis.WriteFile.ABSPATHDetected
         file_put_contents( $htaccess, $content );
     }
 

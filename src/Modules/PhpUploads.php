@@ -50,6 +50,11 @@ class PhpUploads {
         }
 
         $content = file_get_contents( $htaccess );
+
+        if ( strpos( $content, '# BEGIN aGo Harden' ) === false ) {
+            return; // Nothing of ours to remove.
+        }
+
         $content = preg_replace(
             '/# BEGIN aGo Harden.*?# END aGo Harden\s*/s',
             '',

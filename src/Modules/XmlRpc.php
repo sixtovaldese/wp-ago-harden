@@ -39,7 +39,7 @@ class XmlRpc {
             return false;
         }
 
-        $cleanup_settings = get_option( 'ago_cleanup_settings', [] );
+        $cleanup_settings = get_option( 'agocleanup_settings', [] );
         return ! empty( $cleanup_settings['xmlrpc'] );
     }
 }

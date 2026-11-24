@@ -25,11 +25,14 @@
         hide_login_errors: 5
     };
 
+    var inert = agohardenData.inert || [];
+    var i18n = agohardenData.i18n;
+
     function calcScore() {
         var score = 0;
         Object.keys(WEIGHTS).forEach(function (key) {
             var el = document.querySelector('[name="' + key + '"]');
-            if (!el) return;
+            if (!el || inert.indexOf(key) !== -1) return;
             if (el.type === 'checkbox') {
                 if (el.checked) score += WEIGHTS[key];
             } else if (el.type === 'text') {
@@ -49,10 +52,10 @@
     }
 
     function scoreLabel(s) {
-        if (s >= 90) return agohardenData.i18n ? agohardenData.i18n.excellent : 'Excellent';
-        if (s >= 70) return agohardenData.i18n ? agohardenData.i18n.good : 'Good';
-        if (s >= 40) return agohardenData.i18n ? agohardenData.i18n.fair : 'Fair';
-        return agohardenData.i18n ? agohardenData.i18n.weak : 'Weak';
+        if (s >= 90) return i18n.excellent;
+        if (s >= 70) return i18n.good;
+        if (s >= 40) return i18n.fair;
+        return i18n.weak;
     }
 
     function updateGauge(score) {
@@ -98,7 +101,7 @@
         });
 
         saveBtn.classList.add('saving');
-        saveBtn.textContent = agohardenData.i18n ? agohardenData.i18n.saving : 'Saving…';
+        saveBtn.textContent = i18n.saving;
         saveStatus.textContent = '';
         saveStatus.className = 'ago-save-status';
 
@@ -112,24 +115,30 @@
         })
         .then(function (r) { return r.json(); })
         .then(function (resp) {
-            if (resp.saved) {
+            if (resp.saved && resp.failed && resp.failed.length) {
+                saveStatus.className = 'ago-save-status fail';
+                saveStatus.textContent = i18n.failed;
+                if (resp.settings && typeof resp.settings.security_score !== 'undefined') {
+                    updateGauge(resp.settings.security_score);
+                }
+            } else if (resp.saved) {
                 saveStatus.className = 'ago-save-status ok';
-                saveStatus.textContent = agohardenData.i18n ? agohardenData.i18n.saved : 'Saved!';
+                saveStatus.textContent = i18n.saved;
                 if (resp.settings && typeof resp.settings.security_score !== 'undefined') {
                     updateGauge(resp.settings.security_score);
                 }
             } else {
                 saveStatus.className = 'ago-save-status fail';
-                saveStatus.textContent = agohardenData.i18n ? agohardenData.i18n.error : 'Error saving.';
+                saveStatus.textContent = i18n.error;
             }
         })
         .catch(function (err) {
             saveStatus.className = 'ago-save-status fail';
-            saveStatus.textContent = 'Error: ' + err.message;
+            saveStatus.textContent = i18n.error + ' ' + err.message;
         })
         .finally(function () {
             saveBtn.classList.remove('saving');
-            saveBtn.textContent = agohardenData.i18n ? agohardenData.i18n.save : 'Save Settings';
+            saveBtn.textContent = i18n.save;
             setTimeout(function () {
                 saveStatus.textContent = '';
                 saveStatus.className = 'ago-save-status';

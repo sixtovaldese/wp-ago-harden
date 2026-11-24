@@ -57,7 +57,10 @@ class LoginUrl {
 
         // Serve login page on custom slug.
         if ( $path === '/' . self::$slug || $path === site_url( self::$slug, 'relative' ) ) {
-            // Let WordPress handle login.
+            // Let WordPress handle login. wp-login.php expects to run at file
+            // scope, and its functions read these as globals: declared here,
+            // the values it sets land where those functions look for them.
+            global $error, $interim_login, $action, $user_login, $user, $redirect_to;
             require_once ABSPATH . 'wp-login.php';
             exit;
         }

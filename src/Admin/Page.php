@@ -9,6 +9,42 @@ defined( 'ABSPATH' ) || exit;
 
 class Page {
 
+    /** Points a switch adds to the score. */
+    private static function badge( int $points ): void {
+        printf(
+            '<span class="ago-toggle-badge ago-badge-%1$d">%2$s</span>',
+            (int) $points,
+            esc_html(
+                sprintf(
+                    /* translators: %d: points the switch adds to the security score */
+                    _n( '%d pt', '%d pts', $points, 'ago-harden' ),
+                    $points
+                )
+            )
+        );
+    }
+
+    /**
+     * Says, next to a switch, that this server cannot enforce it.
+     *
+     * @param string[] $inert
+     */
+    private static function inert_note( string $key, array $inert ): void {
+        if ( ! in_array( $key, $inert, true ) ) {
+            return;
+        }
+
+        if ( empty( $GLOBALS['is_apache'] ) ) {
+            $text = __( 'This server does not read .htaccess files (Nginx, for example), so this switch has no effect here and adds nothing to the score. Ask your host for the equivalent server rule.', 'ago-harden' );
+        } elseif ( 'disable_directory_listing' === $key && ! file_exists( \AgoLab\Harden\Modules\DirectoryListing::file() ) ) {
+            $text = __( 'This site has no .htaccess file at its root, so this switch has no effect here and adds nothing to the score.', 'ago-harden' );
+        } else {
+            $text = __( 'The rule could not be written to the .htaccess file. Check its permissions: until the rule is in place, this switch has no effect and adds nothing to the score.', 'ago-harden' );
+        }
+
+        printf( '<span class="ago-toggle-inert">%s</span>', esc_html( $text ) );
+    }
+
     public static function render(): void {
         // A rule can be lost outside the plugin: a hand-edited .htaccess, a
         // migration, a host that resets the file. Reconcile here so the page
@@ -16,7 +52,8 @@ class Page {
         Plugin::sync_htaccess();
 
         $settings = Plugin::get_settings();
-        $score    = Score::calculate( $settings );
+        $inert    = Plugin::inert_toggles();
+        $score    = Score::calculate( $settings, $inert );
         $color    = Score::color( $score );
         $label    = Score::label( $score );
         ?>
@@ -60,7 +97,7 @@ class Page {
                             <label class="ago-toggle">
                                 <span class="ago-toggle-header">
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Custom Login URL', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-15">15 pts</span>
+                                    <?php self::badge( 15 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Change the login URL to a custom slug. Leave empty to disable.', 'ago-harden' ); ?></span>
                                 <span class="ago-toggle-input">
@@ -73,7 +110,7 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="limit_login_attempts" value="1" <?php checked( $settings['limit_login_attempts'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Limit Login Attempts', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-15">15 pts</span>
+                                    <?php self::badge( 15 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( '3 failed attempts in 15 minutes triggers a 1-hour lockout per IP.', 'ago-harden' ); ?></span>
                             </label>
@@ -82,7 +119,7 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="hide_login_errors" value="1" <?php checked( $settings['hide_login_errors'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Hide Login Errors', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-5">5 pts</span>
+                                    <?php self::badge( 5 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Replace detailed login error messages with a generic one.', 'ago-harden' ); ?></span>
                             </label>
@@ -90,7 +127,7 @@ class Page {
                             <label class="ago-toggle">
                                 <span class="ago-toggle-header">
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Force Logout After', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-5">5 pts</span>
+                                    <?php self::badge( 5 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Force session expiration after N hours. Set 0 to disable.', 'ago-harden' ); ?></span>
                                 <span class="ago-toggle-input">
@@ -109,16 +146,16 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="hide_wp_version" value="1" <?php checked( $settings['hide_wp_version'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Hide WordPress Version', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-5">5 pts</span>
+                                    <?php self::badge( 5 ); ?>
                                 </span>
-                                <span class="ago-toggle-desc"><?php esc_html_e( 'Remove version meta tag and strip ?ver= from scripts and styles.', 'ago-harden' ); ?></span>
+                                <span class="ago-toggle-desc"><?php esc_html_e( 'Remove the version meta tag and replace ?ver= in scripts and styles with a short hash of the file date, so caches still refresh after an update.', 'ago-harden' ); ?></span>
                             </label>
 
                             <label class="ago-toggle">
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="block_author_enum" value="1" <?php checked( $settings['block_author_enum'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Block Author Enumeration', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-5">5 pts</span>
+                                    <?php self::badge( 5 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Block ?author=N enumeration and restrict REST API users endpoint.', 'ago-harden' ); ?></span>
                             </label>
@@ -133,7 +170,7 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="security_headers" value="1" <?php checked( $settings['security_headers'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Security Headers', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-15">15 pts</span>
+                                    <?php self::badge( 15 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Add X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection headers.', 'ago-harden' ); ?></span>
                             </label>
@@ -142,7 +179,7 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="disable_xmlrpc" value="1" <?php checked( $settings['disable_xmlrpc'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Disable XML-RPC', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-10">10 pts</span>
+                                    <?php self::badge( 10 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Disable XML-RPC endpoint. Skipped automatically if aGo Cleanup handles it.', 'ago-harden' ); ?></span>
                             </label>
@@ -157,7 +194,7 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="disable_file_edit" value="1" <?php checked( $settings['disable_file_edit'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Disable File Editor', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-10">10 pts</span>
+                                    <?php self::badge( 10 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Disable the built-in theme and plugin editor in wp-admin.', 'ago-harden' ); ?></span>
                             </label>
@@ -166,18 +203,20 @@ class Page {
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="block_php_uploads" value="1" <?php checked( $settings['block_php_uploads'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Block PHP in Uploads', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-10">10 pts</span>
+                                    <?php self::badge( 10 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Block PHP execution in wp-content/uploads/ via .htaccess.', 'ago-harden' ); ?></span>
+                                <?php self::inert_note( 'block_php_uploads', $inert ); ?>
                             </label>
 
                             <label class="ago-toggle">
                                 <span class="ago-toggle-header">
                                     <input type="checkbox" name="disable_directory_listing" value="1" <?php checked( $settings['disable_directory_listing'] ); ?>>
                                     <span class="ago-toggle-title"><?php esc_html_e( 'Disable Directory Listing', 'ago-harden' ); ?></span>
-                                    <span class="ago-toggle-badge ago-badge-5">5 pts</span>
+                                    <?php self::badge( 5 ); ?>
                                 </span>
                                 <span class="ago-toggle-desc"><?php esc_html_e( 'Add Options -Indexes to root .htaccess to prevent directory browsing.', 'ago-harden' ); ?></span>
+                                <?php self::inert_note( 'disable_directory_listing', $inert ); ?>
                             </label>
                         </div>
                     </div>
@@ -197,9 +236,9 @@ class Page {
                         <h3 style="margin-top:0"><?php esc_html_e( 'Quick links', 'ago-harden' ); ?></h3>
                         <ul class="ago-features" style="list-style:none;padding:0;margin:0">
                             <li><a href="https://ago.cl/herramientas/wordpress/ago-harden/docs" target="_blank" rel="noopener"><?php esc_html_e( 'Documentation', 'ago-harden' ); ?></a></li>
-                            <li><a href="https://www.wpscan.com" target="_blank" rel="noopener"><?php esc_html_e( 'WPScan vulnerability database', 'ago-harden' ); ?></a></li>
+                            <li><a href="https://wpscan.com" target="_blank" rel="noopener"><?php esc_html_e( 'WPScan vulnerability database', 'ago-harden' ); ?></a></li>
                             <li><a href="https://securityheaders.com" target="_blank" rel="noopener"><?php esc_html_e( 'Scan your security headers', 'ago-harden' ); ?></a></li>
-                            <li><a href="https://observatory.mozilla.org" target="_blank" rel="noopener"><?php esc_html_e( 'Audit with Mozilla Observatory', 'ago-harden' ); ?></a></li>
+                            <li><a href="https://developer.mozilla.org/en-US/observatory" target="_blank" rel="noopener"><?php esc_html_e( 'Audit with Mozilla Observatory', 'ago-harden' ); ?></a></li>
                         </ul>
                     </div>
 
@@ -215,6 +254,8 @@ class Page {
                             <li><?php esc_html_e( 'File editor lockdown', 'ago-harden' ); ?></li>
                             <li><?php esc_html_e( 'PHP upload blocking', 'ago-harden' ); ?></li>
                             <li><?php esc_html_e( 'Real-time security score', 'ago-harden' ); ?></li>
+                            <li><?php esc_html_e( 'Turning a switch off undoes its change', 'ago-harden' ); ?></li>
+                            <li><?php esc_html_e( 'Completely free, no Pro tier.', 'ago-harden' ); ?></li>
                         </ul>
                     </div>
 

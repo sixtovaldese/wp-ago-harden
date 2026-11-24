@@ -25,11 +25,15 @@ class Score {
      * Calculate security score (0-100).
      *
      * @param array<string, mixed> $settings
+     * @param string[]             $inert    Switches that cannot take effect on this server and add nothing.
      */
-    public static function calculate( array $settings ): int {
+    public static function calculate( array $settings, array $inert = [] ): int {
         $score = 0;
 
         foreach ( self::WEIGHTS as $key => $points ) {
+            if ( in_array( $key, $inert, true ) ) {
+                continue;
+            }
             if ( $key === 'custom_login_url' ) {
                 if ( ! empty( $settings[ $key ] ) && is_string( $settings[ $key ] ) ) {
                     $score += $points;
